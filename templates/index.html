@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OS Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            /* ShadCN Zinc Dark Theme (Default) */
+            --bg: #09090b;
+            --card-bg: #18181b;
+            --border: #27272a;
+            --text-main: #fafafa;
+            --text-sub: #a1a1aa;
+            --hover-bg: #27272a;
+
+            --accent-green: #22c55e;
+            --accent-orange: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-blue: #3b82f6;
+
+            --nav-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Light Theme Override */
+        body.light-mode {
+            --bg: #f4f4f5;
+            /* Zinc 100 */
+            --card-bg: #ffffff;
+            --border: #e4e4e7;
+            /* Zinc 200 */
+            --text-main: #18181b;
+            --text-sub: #71717a;
+            --hover-bg: #f4f4f5;
+            --nav-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden;
+            transition: background-color 0.3s, color 0.3s;
+            position: relative;
+        }
+
+        /* --- Violet Aura Glow --- */
+        .aura-background {
+            position: fixed;
+            top: -20%;
+            left: -20%;
+            width: 140%;
+            height: 140%;
+            /* Reduced strength by 70% per user request */
+            background: radial-gradient(circle at 60% 40%, rgba(139, 92, 246, 0.05) 0%, rgba(139, 92, 246, 0.02) 50%, transparent 80%);
+            z-index: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        body.light-mode .aura-background {
+            /* Reduced strength by 70% */
+            background: radial-gradient(circle at 60% 40%, rgba(139, 92, 246, 0.08) 0%, rgba(139, 92, 246, 0.03) 50%, transparent 80%);
+        }
+
+        /* --- Navbar --- */
+        .navbar-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            position: relative;
+            max-width: 96%;
+            margin-left: auto;
+            margin-right: auto;
+            z-index: 10;
+        }
+
+        .navbar {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 6px 8px;
+            border-radius: 9999px;
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            box-shadow: var(--nav-shadow);
+            position: relative;
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        .nav-link {
+            padding: 8px 20px;
+            border-radius: 9999px;
+            color: var(--text-sub);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+        }
+
+        .nav-link:hover {
+            color: var(--text-main);
+            background: var(--hover-bg);
+        }
+
+        .nav-link.active {
+            background: var(--text-main);
+            color: var(--bg);
+            font-weight: 600;
+            transform: scale(1.05);
+        }
+
+        .nav-brand {
+            padding: 0 16px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            border-right: 1px solid var(--border);
+            margin-right: 4px;
+            color: var(--text-main);
+        }
+
+        /* Settings Icon & Dropdown */
+        .settings-container {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .settings-icon {
+            color: var(--text-sub);
+            cursor: pointer;
+            transition: color 0.3s, transform 0.5s;
+        }
+
+        .settings-icon:hover {
+            color: var(--text-main);
+            transform: rotate(90deg);
+        }
+
+        .settings-dropdown {
+            position: absolute;
+            top: 40px;
+            right: 0;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+            width: 150px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.2s;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .settings-container:hover .settings-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            padding: 8px 12px;
+            font-size: 13px;
+            color: var(--text-main);
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dropdown-item:hover {
+            background: var(--hover-bg);
+        }
+
+
+        /* --- Layout & Transitions --- */
+        .view-container {
+            display: none;
+            width: 96%;
+            margin: 0 auto;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            position: relative;
+            z-index: 1;
+            /* Above aura */
+        }
+
+        .view-container.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Add delay so unmount doesn't clash? No, simple display block is fine for simplicity */
+
+        .dashboard-grid {
+            display: grid;
+            /* Stats (Left) | Recs (Right - WIDER) */
+            grid-template-columns: 1fr 400px;
+            grid-template-rows: auto;
+            gap: 24px;
+            width: 100%;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            /* height: 100%; REMOVED to prevent overlap */
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
+
+
+        /* --- Dashboard Left Col (Stats) --- */
+        .stats-column {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .status-card {
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .status-display {
+            font-size: 64px;
+            font-weight: 800;
+            letter-spacing: -2px;
+            line-height: 1;
+            color: var(--text-main);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            margin-left: 14px;
+            box-shadow: 0 0 15px currentColor;
+        }
+
+        .status-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 24px;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+        }
+
+        .stat-mini-label {
+            font-size: 12px;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .stat-mini-val {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-top: 4px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .chart-container {
+            height: 200px;
+            width: 100%;
+        }
+
+        .chart-container.wide {
+            height: 180px;
+        }
+
+
+        /* --- Dashboard Right Col (Recs) --- */
+        .rec-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .rec-item {
+            background: var(--hover-bg);
+            /* Use hover color for contrast vs card bg */
+            border-radius: 8px;
+            padding: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        /* High Load Style (Red Container) */
+        .rec-item.high-load {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--accent-red);
+        }
+
+        .rec-item.high-load .rec-info-name {
+            color: var(--accent-red);
+        }
+
+        .rec-item.high-load .rec-desc-text {
+            color: rgba(239, 68, 68, 0.8);
+        }
+
+        .rec-info-name {
+            font-weight: 600;
+            font-size: 14px;
+            display: block;
+            color: var(--text-main);
+        }
+
+        .rec-info-detail {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        .rec-desc-text {
+            font-size: 11px;
+            color: var(--text-sub);
+            /* margin-top: 4px; REMOVED cause of misalignment */
+            text-align: right;
+            max-width: 180px;
+            line-height: 1.3;
+        }
+
+
+        /* --- Process Table --- */
+        .process-table-container {
+            width: 100%;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background: var(--bg);
+            padding: 16px;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--text-sub);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            opacity: 0.8;
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            font-size: 14px;
+            color: var(--text-sub);
+        }
+
+        th:last-child,
+        td:last-child {
+            border-right: none;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .process-row:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .val-high {
+            color: var(--accent-red);
+            font-weight: 600;
+        }
+
+        .val-med {
+            color: var(--accent-orange);
+        }
+
+        .name-col {
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        /* Mobile */
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* --- Landing Page --- */
+        .landing-section {
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px;
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            /* Slow, smooth transition */
+        }
+
+        .landing-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hero-title {
+            font-size: 56px;
+            font-weight: 800;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        body.light-mode .hero-title {
+            background: linear-gradient(135deg, #18181b 0%, #52525b 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-desc {
+            font-size: 18px;
+            color: var(--text-sub);
+            max-width: 600px;
+            margin-bottom: 48px;
+            line-height: 1.6;
+        }
+
+        .features-grid {
+            display: flex;
+            gap: 32px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 40px;
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 32px;
+            border-radius: 16px;
+            width: 280px;
+            text-align: left;
+            transition: transform 0.3s;
+
+            /* Animation Setup */
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .feature-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Stagger Delays */
+        .feature-card:nth-child(1) {
+            transition-delay: 0.2s;
+        }
+
+        .feature-card:nth-child(2) {
+            transition-delay: 0.4s;
+        }
+
+        .feature-card:nth-child(3) {
+            transition-delay: 0.6s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--text-sub);
+        }
+
+        .feature-icon {
+            margin-bottom: 16px;
+            color: var(--text-main);
+        }
+
+        .feature-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .feature-text {
+            font-size: 14px;
+            color: var(--text-sub);
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+</head>
+
+<body>
+    <div class="aura-background"></div>
+
+    <!-- NAV -->
+    <div class="navbar-wrapper">
+        <div class="navbar">
+            <div class="nav-link active" id="btn-home" onclick="setTab('home')">Home</div>
+            <div class="nav-link" id="btn-dash" onclick="setTab('dash')">Dashboard</div>
+            <div class="nav-link" id="btn-proc" onclick="setTab('proc')">Processes</div>
+        </div>
+
+        <!-- Settings (Top Right) -->
+        <div class="settings-container">
+            <i data-lucide="settings" class="settings-icon"></i>
+            <div class="settings-dropdown">
+                <div class="dropdown-item" onclick="toggleTheme()">
+                    <i data-lucide="sun" id="theme-icon" style="width:14px;"></i>
+                    <span id="theme-text">Light Mode</span>
+                </div>
+                <!-- Logic for Retrain could go here too, but user didn't ask to move it specifically -->
+                <div class="dropdown-item" onclick="triggerRetrain()">
+                    <i data-lucide="refresh-cw" style="width:14px;"></i>
+                    Retrain Model
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HOME VIEW (Landing) -->
+    <div id="view-home" class="view-container active">
+        <div class="landing-section">
+            <div class="hero-title">OS Performance Monitor</div>
+            <div class="hero-desc">
+                An advanced system monitoring solution powered by Python and machine learning.
+                Visualize real-time metrics, analyze process efficiency, and optimize your workflow with intelligent
+                insights.
+            </div>
+
+            <button onclick="setTab('dash')" style="
+                background: var(--text-main); color: var(--bg); border: none; padding: 12px 32px;
+                border-radius: 99px; font-weight: 600; font-size: 15px; cursor: pointer; transition: transform 0.2s;">
+                Launch Dashboard
+            </button>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <i data-lucide="activity" class="feature-icon"></i>
+                    <div class="feature-title">Real-Time Metrics</div>
+                    <div class="feature-text">Live tracking of CPU, RAM, and Disk usage with fluid canvas-based
+                        charting.</div>
+                </div>
+                <div class="feature-card">
+                    <i data-lucide="cpu" class="feature-icon"></i>
+                    <div class="feature-title">Process Analysis</div>
+                    <div class="feature-text">Deep inspection of active tasks with intelligent resource consumption
+                        alerts.</div>
+                </div>
+                <div class="feature-card">
+                    <i data-lucide="zap" class="feature-icon"></i>
+                    <div class="feature-title">ML Optimization</div>
+                    <div class="feature-text">AI-driven classification of system load states for proactive performance
+                        tuning.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD VIEW -->
+    <div id="view-dash" class="view-container">
+        <div class="dashboard-grid">
+
+            <!-- LEFT COLUMN: Stats -->
+            <div class="stats-column">
+                <div class="card status-card">
+                    <div>
+                        <div class="card-title">System Health</div>
+                        <div class="card-desc">Real-time load analysis</div>
+                    </div>
+
+                    <div style="display:flex; align-items:center; flex-wrap: wrap;">
+                        <span id="status-text" class="status-display">Normal</span>
+                        <div id="status-dot" class="status-indicator" style="background: var(--accent-green);"></div>
+                        <div id="status-rec"
+                            style="font-size: 13px; font-weight: 500; margin-left: 16px; max-width: 200px; line-height: 1.4; display: none;">
+                        </div>
+                    </div>
+
+                    <div class="status-detail-grid">
+                        <div>
+                            <div class="stat-mini-label">CPU</div>
+                            <div class="stat-mini-val" id="mini-cpu">0%</div>
+                        </div>
+                        <div>
+                            <div class="stat-mini-label">Memory</div>
+                            <div class="stat-mini-val" id="mini-ram">0%</div>
+                        </div>
+                        <div>
+                            <div class="stat-mini-label">Processes</div>
+                            <div class="stat-mini-val" id="mini-proc">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="card">
+                        <div class="card-title" style="margin-bottom:12px;">CPU Load</div>
+                        <div class="chart-container">
+                            <canvas id="chartCpu"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title" style="margin-bottom:12px;">Memory Usage</div>
+                        <div class="chart-container">
+                            <canvas id="chartRam"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title" style="margin-bottom:12px;">Disk Activity</div>
+                    <div class="chart-container wide">
+                        <canvas id="chartDisk"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Recommendations -->
+            <div class="card rec-card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Process Analysis</div>
+                        <div class="card-desc">Resource utilization & Optimizations</div>
+                    </div>
+                </div>
+
+                <!-- Strategy / Advice Block -->
+                <div
+                    style="margin-bottom: 20px; padding: 12px; border-left: 3px solid var(--accent-blue); background: rgba(59, 130, 246, 0.05); border-radius: 0 4px 4px 0;">
+                    <div style="font-size: 13px; font-weight: 500; color: var(--text-main); margin-bottom: 4px;">Load
+                        Balancing Strategy</div>
+                    <div style="font-size: 12px; color: var(--text-sub); line-height: 1.5;">
+                        Kill these processes for better performance by load balancing. Ensure critical services are
+                        running.
+                    </div>
+                </div>
+
+                <div class="rec-list" id="rec-container">
+                    <div class="rec-item">
+                        <span style="font-size:13px; color:var(--text-sub);">Scanning...</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- PROCESSES VIEW -->
+    <div id="view-proc" class="view-container">
+        <div class="process-table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">Process Name</th>
+                        <th style="width: 15%;">PID</th>
+                        <th style="width: 20%;">CPU</th>
+                        <th style="width: 25%;">Memory (MB)</th>
+                    </tr>
+                </thead>
+                <tbody id="proc-tbody">
+                    <!-- JS Populated -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // --- Theme Toggle ---
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+
+            // Update Text
+            document.getElementById('theme-text').innerText = isLight ? 'Dark Mode' : 'Light Mode';
+
+            // Update Icon
+            // Re-render lucide icon needed? Usually replace inner
+            // For simplicity, just text swap is fine, icon generic sun works for both triggers
+        }
+
+        // --- Scroll Observer (Staggered) ---
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    // Stop observing once visible to run only once
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        // Observe main landing container
+        document.querySelectorAll('.landing-section').forEach(el => observer.observe(el));
+        // Observe individual feature cards for staggered effect
+        document.querySelectorAll('.feature-card').forEach(el => observer.observe(el));
+
+
+        // --- Navigation Transition ---
+        function setTab(tab) {
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+            const btn = document.getElementById('btn-' + tab);
+            if (btn) btn.classList.add('active'); // Home might not be clicked if launched via button
+
+            // Special case for 'Launch' button which might not be nav click
+            if (tab === 'dash' && !document.getElementById('btn-dash').classList.contains('active')) {
+                document.getElementById('btn-dash').classList.add('active');
+            }
+
+            // Transition Logic
+            const oldView = document.querySelector('.view-container.active');
+            const newView = document.getElementById('view-' + tab);
+
+            if (!newView || oldView === newView) return;
+
+            // If switching TO home, re-trigger animation? Maybe.
+            if (tab === 'home') {
+                document.querySelectorAll('.landing-section').forEach(el => el.classList.remove('visible'));
+                setTimeout(() => {
+                    document.querySelectorAll('.landing-section').forEach(el => el.classList.add('visible'));
+                }, 100);
+            }
+
+            // Simple Fade Swap
+            oldView.style.opacity = '0';
+            oldView.style.transform = 'translateY(10px)';
+
+            setTimeout(() => {
+                oldView.classList.remove('active');
+
+                newView.classList.add('active');
+                // Trigger reflow
+                void newView.offsetWidth;
+
+                newView.style.opacity = '1';
+                newView.style.transform = 'translateY(0)';
+            }, 300);
+        }
+
+        // --- Charts Config ---
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#71717a'; // Neutral
+        Chart.defaults.borderColor = 'rgba(113, 113, 122, 0.1)'; // Subtle grid
+
+        const chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { display: false },
+                y: { display: true, beginAtZero: true, max: 100, border: { display: false } }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    enabled: true,
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(24, 24, 27, 0.9)',
+                    titleColor: '#fafafa',
+                    bodyColor: '#a1a1aa',
+                    borderColor: '#27272a',
+                    borderWidth: 1,
+                    padding: 10,
+                    displayColors: false
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            },
+            elements: {
+                line: { tension: 0.4, borderWidth: 2 },
+                point: { radius: 0, hoverRadius: 6 }
+            },
+            animation: { duration: 0 }
+        };
+
+        const ctxCpu = document.getElementById('chartCpu').getContext('2d');
+        const chartCpu = new Chart(ctxCpu, {
+            type: 'line',
+            data: { labels: [], datasets: [{ data: [], borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', fill: true }] },
+            options: chartOptions
+        });
+
+        const ctxRam = document.getElementById('chartRam').getContext('2d');
+        const chartRam = new Chart(ctxRam, {
+            type: 'line',
+            data: { labels: [], datasets: [{ data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true }] },
+            options: chartOptions
+        });
+
+        const ctxDisk = document.getElementById('chartDisk').getContext('2d');
+        const chartDisk = new Chart(ctxDisk, {
+            type: 'line',
+            data: { labels: [], datasets: [{ data: [], borderColor: '#22c55e', backgroundColor: 'rgba(34, 197, 94, 0.1)', fill: true }] },
+            options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, max: undefined } } }
+        });
+
+        // --- Data Fetching ---
+        function updateData() {
+            fetch('/api/recommend')
+                .then(r => r.json())
+                .then(data => {
+                    const statusText = document.getElementById('status-text');
+                    const statusDot = document.getElementById('status-dot');
+                    const statusRec = document.getElementById('status-rec');
+
+                    // Logic update: Ensure displayed text matches style
+                    statusText.innerText = data.load_status;
+                    statusRec.style.display = 'none'; // Default hidden
+
+                    if (data.load_status.includes('High')) {
+                        statusText.style.color = 'var(--accent-red)';
+                        statusDot.style.background = 'var(--accent-red)';
+                        statusDot.style.boxShadow = '0 0 15px rgba(239, 68, 68, 0.5)';
+
+                        statusRec.innerText = "Critical Load: Reduce CPU/Memory usage immediately.";
+                        statusRec.style.color = 'var(--accent-red)';
+                        statusRec.style.display = 'block';
+
+                    } else if (data.load_status.includes('Medium')) {
+                        statusText.style.color = 'var(--accent-orange)';
+                        statusDot.style.background = 'var(--accent-orange)';
+                        statusDot.style.boxShadow = '0 0 15px rgba(245, 158, 11, 0.5)';
+
+                        statusRec.innerText = "Suggestion: Reduce CPU/Memory load by closing unused processes.";
+                        statusRec.style.color = 'var(--accent-orange)';
+                        statusRec.style.display = 'block';
+
+                    } else {
+                        statusText.style.color = 'var(--text-main)';
+                        statusDot.style.background = 'var(--accent-green)';
+                        statusDot.style.boxShadow = '0 0 15px rgba(34, 197, 94, 0.5)';
+                    }
+                });
+
+            fetch('/api/current')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('mini-cpu').innerText = data.cpu + '%';
+                    document.getElementById('mini-ram').innerText = data.ram + '%';
+                    document.getElementById('mini-proc').innerText = data.processes;
+                });
+
+            fetch('/api/processes')
+                .then(r => r.json())
+                .then(procs => {
+
+                    // A. Populate Recommendations (Right Col)
+                    const recContainer = document.getElementById('rec-container');
+                    recContainer.innerHTML = '';
+
+                    // Sort by CPU for analysis
+                    const topCpu = procs.sort((a, b) => b.cpu - a.cpu).slice(0, 6);
+
+                    topCpu.forEach(p => {
+                        let rowClass = 'rec-item';
+                        let descText = 'Idle / Background';
+
+                        if (p.cpu > 5) { // Threshold for High CPU
+                            rowClass += ' high-load';
+                            descText = 'High CPU Load • Suggestion: Kill Task';
+                        } else if (p.memory > 500) { // Threshold for High RAM (500MB)
+                            rowClass += ' high-load';
+                            descText = 'High Memory Usage • Suggestion: Inspect/Kill';
+                        }
+
+                        const div = document.createElement('div');
+                        div.className = rowClass;
+                        div.innerHTML = `
+                            <div>
+                                <span class="rec-info-name">${p.name}</span>
+                                <span class="rec-info-detail">${p.cpu}% CPU &bull; ${p.memory} MB</span>
+                            </div>
+                            <div class="rec-desc-text">${descText}</div>
+                        `;
+                        recContainer.appendChild(div);
+                    });
+
+                    // B. Populate Table
+                    const tbody = document.getElementById('proc-tbody');
+                    tbody.innerHTML = '';
+                    // Re-sort by Memory for table default or just use same
+                    procs.sort((a, b) => b.memory - a.memory).forEach(p => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'process-row';
+
+                        let cpuClass = p.cpu > 10 ? 'val-high' : (p.cpu > 5 ? 'val-med' : '');
+                        let memClass = p.memory > 500 ? 'val-high' : '';
+
+                        tr.innerHTML = `
+                            <td class="name-col">${p.name}</td>
+                            <td>${p.pid}</td>
+                            <td class="${cpuClass}">${p.cpu}%</td>
+                            <td class="${memClass}">${p.memory}</td>
+                         `;
+                        tbody.appendChild(tr);
+                    });
+                });
+
+            fetch('/api/history')
+                .then(r => r.json())
+                .then(hist => {
+                    const labels = hist.map(x => new Date(x.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+
+                    if (chartCpu.data.labels.length === 0 || labels[labels.length - 1] !== chartCpu.data.labels[chartCpu.data.labels.length - 1]) {
+                        chartCpu.data.labels = labels; chartCpu.data.datasets[0].data = hist.map(x => x.cpu_usage); chartCpu.update('none');
+                        chartRam.data.labels = labels; chartRam.data.datasets[0].data = hist.map(x => x.ram_usage); chartRam.update('none');
+                        chartDisk.data.labels = labels; chartDisk.data.datasets[0].data = hist.map(x => x.disk_usage); chartDisk.update('none');
+                    }
+                });
+        }
+
+        function triggerRetrain() {
+            fetch('/api/retrain').then(r => r.json()).then(d => alert(d.message));
+        }
+
+        setInterval(updateData, 4000);
+        updateData();
+    </script>
+</body>
+
+</html>
