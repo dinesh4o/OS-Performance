@@ -1,4 +1,4 @@
-# OS Performance Monitor 🚀
+# OS Performance Monitor 
 
 An intelligent, real-time operating system monitoring dashboard powered by Python, Flask, and Machine Learning. This tool provides deep insights into system performance, visualizes metrics, and uses AI to suggest optimizations.
 
