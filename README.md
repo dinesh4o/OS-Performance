@@ -58,7 +58,3 @@ Before running the project, ensure you have the following installed:
 ## 🧠 ML Model
 
 The system includes a pre-trained model (`model.pkl`) to classify system states. You can retrain this model anytime via the "Settings" menu in the dashboard or by hitting the `/api/retrain` endpoint.
-
-## 📜 License
-
-This project is open-source and available under the MIT License.
